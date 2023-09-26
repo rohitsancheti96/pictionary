@@ -1,4 +1,4 @@
-// File: /Users/rohitsancheti/Documents/Projects/pictionary/app/page.tsx
+// File: /Users/rohitsancheti/Documents/Projects/pictionary/client/app/page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
