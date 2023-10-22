@@ -1,3 +1,6 @@
+"use client";
+
+import { Draw, Point } from "@/types/typing";
 import { useEffect, useRef, useState } from "react";
 
 export const useDraw = (
@@ -7,7 +10,10 @@ export const useDraw = (
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prevPoint = useRef<Point | null>(null);
 
-  const onMouseDown = () => setMouseDown(true);
+  const onMouseDown = () => {
+    console.log("onMOuseDown");
+    setMouseDown(true);
+  };
 
   const clear = () => {
     const canvas = canvasRef.current;
@@ -49,11 +55,11 @@ export const useDraw = (
     };
 
     // Add event listener
-    canvasRef.current?.addEventListener("mousemove", handler);
+    window.addEventListener("mousemove", handler);
     window.addEventListener("mouseup", mouseUpHandler);
     //Remove event listener
-    return () => canvasRef.current?.removeEventListener("mousemove", handler);
-  }, [onDraw]);
+    return () => window.removeEventListener("mousemove", handler);
+  }, [mouseDown, onDraw]);
 
   return { canvasRef, onMouseDown, clear };
 };
