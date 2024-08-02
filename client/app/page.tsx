@@ -25,6 +25,9 @@ import { Separator } from "@/components/ui/separator";
 import JoinRoomButton from "@/components/JoinRoomButton";
 import { socket } from "@/lib/socket";
 import { Draw, Point } from "@/types/typing";
+import { randomUUID } from "crypto";
+import { generateRandomId } from "@/lib/utils";
+import WordDisplay from "@/components/WordDisplay";
 
 type DrawLineProps = {
   prevPoint: Point | null;
@@ -34,7 +37,7 @@ type DrawLineProps = {
 };
 
 export default function Home() {
-  const roomId = "123456789123456789123";
+  const roomId = generateRandomId();
   return (
     <div className="flex h-screen flex-col items-center justify-between pb-5 pt-[13vh]">
       <Card className="w-[90vw] max-w-[400px]">

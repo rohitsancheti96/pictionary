@@ -2,20 +2,38 @@
 import { useDraw } from "@/hooks/useDraw";
 import { socket } from "@/lib/socket";
 import { drawLine, drawWithDataURL } from "@/lib/utils";
-import { Draw } from "@/types/typing";
+import { useGameStore } from "@/stores/useGame";
+import { User, useUserStore } from "@/stores/userStore";
+import { Draw, DrawOptions } from "@/types/typing";
 import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import ModalComponent from "./ModalComponent";
 
 const DrawingCanvas = () => {
   const { roomId } = useParams();
 
+  const [modalIsOpen, setIsOpen] = React.useState(false);
   const [isCanvasLoading, setCanvasLoading] = useState(true);
+  const user = useUserStore((state) => state.user);
+  const [word, setWord, turn, setTurn] = useGameStore((state) => [
+    state.word,
+    state.setWord,
+    state.turn,
+    state.setTurn,
+  ]);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const onDraw = useCallback(
     ({ prevPoint, currentPoint, ctx }: Draw) => {
-      drawLine({ prevPoint, currentPoint, ctx, color: "#000" });
-      socket.emit("draw-line", { prevPoint, currentPoint, color: "#000" });
+      const drawOptions = {
+        prevPoint,
+        currentPoint,
+        ctx,
+        color: "#000",
+      };
+      drawLine(drawOptions);
+      socket.emit("draw-line", { drawOptions, roomId });
     },
     [roomId]
   );
@@ -46,39 +64,55 @@ const DrawingCanvas = () => {
       setCanvasLoading(false);
     });
 
-    socket.on("update-canvas-state", () => {});
+    socket.on("update-canvas-state", (drawOptions: DrawOptions) => {
+      if (!ctx) return;
+      drawLine({ ...drawOptions, ctx });
+    });
+
+    socket.on("send-turn", (res: string) => {
+      console.log({ res });
+      const response = JSON.parse(res);
+      setWord(response.currentWord);
+      setTurn(response.turn);
+    });
+
+    socket.on("turn-over", () => {
+      setIsOpen(true);
+    });
 
     return () => {
       socket.off("get-canvas-state");
       socket.off("canvas-state-from-server");
       socket.off("update-canvas-state");
     };
-  });
+  }, [canvasRef, roomId]);
 
   useEffect(() => {
-    const setCanvasDimensions = () => {
-      if (!containerRef.current && !canvasRef.current) return;
-
-      const { width, height } =
-        containerRef.current?.getBoundingClientRect() as DOMRect;
-
-      if (canvasRef.current) {
-        canvasRef.current.width = width - 50;
-        canvasRef.current.height = height - 50;
-      }
-    };
-    setCanvasDimensions();
+    // const setCanvasDimensions = () => {
+    //   if (!containerRef.current && !canvasRef.current) return;
+    //   const { width, height } =
+    //     containerRef.current?.getBoundingClientRect() as DOMRect;
+    //   console.log({ height });
+    //   if (canvasRef.current) {
+    //     canvasRef.current.width = width - 50;
+    //     canvasRef.current.height = height - 50;
+    //   }
+    // };
+    // setCanvasDimensions();
   }, [canvasRef]);
+
+  // turn?.id !== user?.id ? "cursor-not-allowed pointer-events-none" : ""
 
   return (
     <div
       ref={containerRef}
-      className="h-full w-full flex items-center justify-center"
+      className="w-full flex items-start justify-center mt-2"
     >
+      <ModalComponent modalIsOpen={modalIsOpen} setIsOpen={setIsOpen} />
       <canvas
-        width={0}
-        height={0}
-        className="border border-black rounded-md"
+        width={650}
+        height={650}
+        className={`border border-black rounded-md `}
         ref={canvasRef}
         onMouseDown={onMouseDown}
       ></canvas>

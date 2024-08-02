@@ -37,6 +37,7 @@ function CreateRoomForm({ roomId }: { roomId: string }) {
   function onSubmit({ username }: CreatRoomForm) {
     console.log({ username });
     setIsLoading(true);
+    console.log({ roomId, username });
     socket.emit("create-room", { roomId, username });
   }
 

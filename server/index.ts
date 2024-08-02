@@ -4,13 +4,22 @@ import { Server, type Socket } from "socket.io";
 
 import { joinRoomSchema } from "./lib/validations/joinRoom";
 import { z } from "zod";
-import { addUser, getRoomMembers } from "./data/users";
-import { JoinRoomData } from "./types";
+import {
+  addUser,
+  getAllusers,
+  getRoomMembers,
+  getUser,
+  removeUser,
+  wordToGuess,
+} from "./data/users";
+import { JoinRoomData, User } from "./types";
+import { Game } from "./Game";
 
 const app = express();
 const server = http.createServer(app);
 
 const io = new Server(server, {
+  // @ts-ignore
   cors: {
     origin: "*",
   },
@@ -18,11 +27,33 @@ const io = new Server(server, {
 
 type Point = { x: number; y: number };
 
+let Games: { [key: string]: Game } = {};
 type DrawLine = {
   prevPoint: Point | null;
   currentPoint: Point;
   color: string;
 };
+
+function isRoomCreated(roomId: string) {
+  const rooms = [...io.sockets.adapter.rooms];
+  return rooms?.some((room) => room[0] === roomId);
+}
+
+function leaveRoom(socket: Socket) {
+  const user = getUser(socket.id);
+  if (!user) return;
+
+  const { username, roomId } = user;
+  removeUser(socket.id);
+  const members = getRoomMembers(roomId);
+  console.log({ members });
+  socket.to(roomId).emit("update-members", members);
+  socket.to(roomId).emit("send-notification", {
+    title: "Member left!",
+    message: `${username} left the party`,
+  });
+  socket.leave(roomId);
+}
 
 function validateJoinRoomData(socket: Socket, joinRoomData: JoinRoomData) {
   try {
@@ -42,6 +73,9 @@ function joinRoom(socket: Socket, roomId: string, username: string) {
   const user = {
     id: socket.id,
     username,
+    roomId: roomId,
+    score: 0,
+    lastPlayedRoundNumber: 0,
   };
   addUser({ ...user, roomId });
   const members = getRoomMembers(roomId);
@@ -62,6 +96,49 @@ io.on("connection", (socket) => {
     const { roomId, username } = validatedData;
 
     joinRoom(socket, roomId, username);
+  });
+
+  socket.on("join-room", (joinRoomData: JoinRoomData) => {
+    const validatedData = validateJoinRoomData(socket, joinRoomData);
+    if (!validatedData) return;
+    const { roomId, username } = validatedData;
+
+    if (isRoomCreated(roomId)) {
+      return joinRoom(socket, roomId, username);
+    }
+
+    socket.emit("room-not-found", {
+      message: "Oops! The Room ID you entered does not exist.",
+    });
+  });
+
+  socket.on("start-game", (roomId: string) => {
+    console.log({ roomId });
+    const roomMembers = getRoomMembers(roomId);
+    const game = new Game(roomMembers);
+    Games[game.gameId] = game;
+
+    const payload = JSON.stringify(game);
+    console.log({ payload });
+    socket.nsp.to(roomId).emit("send-turn", payload);
+
+    socket.on("turn-over", (roomId: string) => {
+      console.log("turn over");
+      socket.nsp.to(roomId).emit("turn-over", game);
+    });
+
+    socket.on("get-next-turn", () => {
+      const turn = game.getTurn();
+
+      if (!turn) {
+        socket.nsp.to(roomId).emit("game-over", game);
+        return;
+      }
+
+      const payload = JSON.stringify(game);
+      console.log({ payload });
+      socket.nsp.to(roomId).emit("send-turn", payload);
+    });
   });
 
   socket.on("client-ready", (roomId: string) => {
@@ -85,13 +162,39 @@ io.on("connection", (socket) => {
     socket.to(lastMember.id).emit("canvas-state-from-server", canvasState);
   });
 
-  socket.on("draw-line", ({ prevPoint, currentPoint, color }: DrawLine) => {
-    socket.broadcast.emit("draw-line", { prevPoint, currentPoint, color });
+  socket.on("draw-line", ({ drawOptions, roomId }) => {
+    socket.to(roomId).emit("update-canvas-state", drawOptions);
+  });
+
+  socket.on("leave-room", () => {
+    leaveRoom(socket);
+  });
+
+  // After Game Start events
+
+  socket.on(
+    "send-message",
+    ({ user, message }: { user: User; message: string }) => {
+      const payload = JSON.stringify({
+        user,
+        message,
+      });
+      console.log(payload);
+      socket.to(user.roomId).emit("receive-message", payload);
+      // game.checkWord(user, message);
+    }
+  );
+
+  // socket disconnect
+  socket.on("disconnect", () => {
+    console.log("socket disconnected");
+    leaveRoom(socket);
+    // game.removeUser(socket.id);
   });
 
   socket.on("clear", () => io.emit("clear"));
 });
 
-server.listen(5000, () => {
-  console.log("Server listening on 5000");
+server.listen(4000, () => {
+  console.log("Server listening on 4000");
 });
