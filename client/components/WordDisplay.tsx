@@ -19,8 +19,11 @@ function WordDisplay({
           ) : (
             word
               .split("")
-              .map((x) => (
-                <span className="m-1 px-[15px] py-2.5 border-b-[black] border-b border-solid"></span>
+              .map((x, index) => (
+                <span
+                  key={index}
+                  className="m-1 px-[15px] py-2.5 border-b-[black] border-b border-solid"
+                ></span>
               ))
           )
         ) : (
