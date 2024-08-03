@@ -8,6 +8,7 @@ import { Draw, DrawOptions } from "@/types/typing";
 import { useParams } from "next/navigation";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import ModalComponent from "./ModalComponent";
+import ClearButton from "./ClearButton";
 
 const DrawingCanvas = () => {
   const { roomId } = useParams();
@@ -108,14 +109,21 @@ const DrawingCanvas = () => {
       ref={containerRef}
       className="w-full flex items-start justify-center mt-2"
     >
-      <ModalComponent modalIsOpen={modalIsOpen} setIsOpen={setIsOpen} />
-      <canvas
-        width={650}
-        height={650}
-        className={`border border-black rounded-md `}
-        ref={canvasRef}
-        onMouseDown={onMouseDown}
-      ></canvas>
+      {/* <ModalComponent modalIsOpen={modalIsOpen} setIsOpen={setIsOpen} /> */}
+
+      <div className="relative">
+        <canvas
+          id="canvas"
+          width={650}
+          height={650}
+          className={`border border-black rounded-md `}
+          ref={canvasRef}
+          onMouseDown={onMouseDown}
+        ></canvas>
+        <div className="absolute right-[0px] top-[0px] flex select-none rounded-none rounded-bl rounded-tr-[2.5px]">
+          <ClearButton canvasRef={canvasRef} clear={clear} />
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,9 +1,32 @@
 "use client";
-import React from "react";
+
+import { useEffect, useRef } from "react";
+
 import { Button } from "./ui/button";
 
-const SaveButton = () => {
-  return <Button variant="outline">Save</Button>;
-};
+export default function SaveButton() {
+  const canvasRef = useRef<HTMLCanvasElement>();
 
-export default SaveButton;
+  useEffect(() => {
+    const canvasElement = document.getElementById(
+      "canvas"
+    ) as HTMLCanvasElement;
+    canvasRef.current = canvasElement;
+  }, []);
+
+  const saveCanvas = () => {
+    if (!canvasRef.current) return;
+
+    const linkEl = document.createElement("a");
+    linkEl.download = "pictionary.png";
+    linkEl.href = canvasRef.current.toDataURL();
+    linkEl.click();
+    linkEl.remove();
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={saveCanvas}>
+      Save
+    </Button>
+  );
+}

@@ -2,6 +2,7 @@
 import Headers from "@/components/Headers";
 import MemberList from "@/components/MemberList";
 import Sidebar from "@/components/Sidebar";
+import { socket } from "@/lib/socket";
 import { useUserStore } from "@/stores/userStore";
 import { redirect } from "next/navigation";
 import React, { useEffect, useLayoutEffect } from "react";
@@ -13,11 +14,11 @@ interface Props {
 const Roomlayout: React.FC<Props> = ({ children }) => {
   const user = useUserStore((state) => state.user);
 
-  // useEffect(() => {
-  //   if (!user) {
-  //     redirect("/");
-  //   }
-  // }, [user]);
+  useEffect(() => {
+    if (!user) {
+      redirect("/");
+    }
+  }, [user]);
 
   if (!user) return null;
 
